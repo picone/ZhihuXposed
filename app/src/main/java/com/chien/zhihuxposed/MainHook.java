@@ -1,5 +1,9 @@
 package com.chien.zhihuxposed;
 
+import android.webkit.WebResourceResponse;
+
+import java.io.ByteArrayInputStream;
+
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
@@ -33,17 +37,17 @@ public class MainHook implements IXposedHookLoadPackage {
                 }
             }
         });
-        // TODO
-        // 去除答案页面大图广告
-        // document.querySelector('.Advert-largeAd').style.display="none"
-        // 去除答案页面小广告
-        // document.querySelector('.AdvertRecommend-answer').style.display="none"
-        /*findAndHookMethod("com.zhihu.android.app.appview.AppView2", loadPackageParam.classLoader, "onPageFinished", String.class, new XC_MethodHook() {
+        // 去除答案页面webview里的广告
+        findAndHookMethod("com.zhihu.android.app.appview.AppView2", loadPackageParam.classLoader, "shouldInterceptRequest", String.class, new XC_MethodHook() {
             @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                XposedBridge.log("ZHIHU:WEBVIEW:INFO:" + param.args[0].toString());
-                callMethod(param.thisObject, "loadUrl", "document.querySelector('.Advert-largeAd').style.display='none';document.querySelector('.AdvertRecommend-answer').style.display='none'");
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                // 页面加载完成了，inject
+                String url = (String) param.args[0];
+                if (url.matches("^https?://www.zhihu.com/api/v\\d/community-ad/answers/\\d+/bottom-recommend-ad")) {
+                    // 直接替换返回的内容，够狠
+                    param.setResult(new WebResourceResponse("application/json", "UTF-8", new ByteArrayInputStream("{}".getBytes())));
+                }
             }
-        });*/
+        });
     }
 }
