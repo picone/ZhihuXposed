@@ -1,0 +1,10 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <CheckBoxPreference
+        android:defaultValue="true"
+        android:key="DISABLE_FEED_ADVERT"
+        android:title="@string/disable_feed_advert" />
+    <CheckBoxPreference
+        android:defaultValue="true"
+        android:key="DISABLE_ANSWER_PAGE_ADVERT"
+        android:title="@string/disable_answer_page_advert" />
+</PreferenceScreen>
