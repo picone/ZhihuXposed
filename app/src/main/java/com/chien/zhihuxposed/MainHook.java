@@ -53,15 +53,15 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
     }
 
     /**
-     * 屏蔽Xposed检测
+     * 假装已经放了/sdcard/zhihu/.allowXposed
      * @param loadPackageParam lpparam
      */
     private void hookXposedUtil(XC_LoadPackage.LoadPackageParam loadPackageParam) {
         try {
-            findAndHookMethod(ZhihuConstant.CLASS_XPOSED_UTILS, loadPackageParam.classLoader, "a", new XC_MethodHook() {
+            findAndHookMethod(ZhihuConstant.CLASS_XPOSED_UTILS, loadPackageParam.classLoader, "b", new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    param.setResult(false);
+                    param.setResult(true);
                 }
             });
         } catch (XposedHelpers.ClassNotFoundError | NoSuchMethodError e) {
@@ -77,7 +77,7 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
         Class<?> JsonParser = findClass(ZhihuConstant.CLASS_JSON_PARSER, loadPackageParam.classLoader);
         Class<?> DeserializationContext = findClass(ZhihuConstant.CLASS_JSON_DESERIALIZATION_CONTEXT, loadPackageParam.classLoader);
         try {
-            findAndHookMethod(ZhihuConstant.CLASS_JSON_DESERIALIZER, loadPackageParam.classLoader, "a", JsonParser, DeserializationContext, new XC_MethodHook() {
+            findAndHookMethod(ZhihuConstant.CLASS_ZH_OBJECT_DESERIALIZER, loadPackageParam.classLoader, "deserialize", JsonParser, DeserializationContext, new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     Object result = param.getResult();
@@ -128,10 +128,10 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
      */
     private void hookMainActivityTab(XC_LoadPackage.LoadPackageParam loadPackageParam, final boolean removeDbFeed, final boolean removeMarket) {
         try {
-            findAndHookMethod(ZhihuConstant.CLASS_MAIN_ACTIVITY, loadPackageParam.classLoader, "ac", new XC_MethodHook() {
+            findAndHookMethod(ZhihuConstant.CLASS_MAIN_ACTIVITY, loadPackageParam.classLoader, "R", new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    List<?> fragmentList = (List<?>) getObjectField(param.thisObject, "v");
+                    List<?> fragmentList = (List<?>) getObjectField(param.thisObject, "j");
                     if (removeDbFeed && removeMarket) {
                         fragmentList.remove(1);
                         fragmentList.remove(1);
