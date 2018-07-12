@@ -19,6 +19,10 @@ public class PreferenceUtils {
         return getInstance().getBoolean("DISABLE_FEED_ADVERT", true);
     }
 
+    public static boolean disableMarketCard() {
+        return getInstance().getBoolean("DISABLE_MARKET_CARD", false);
+    }
+
     public static boolean disableAnswerPageAdvert() {
         return getInstance().getBoolean("DISABLE_ANSWER_PAGE_ADVERT", true);
     }

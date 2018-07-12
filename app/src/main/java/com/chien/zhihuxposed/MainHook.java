@@ -10,6 +10,8 @@ import java.util.List;
 import de.robv.android.xposed.IXposedHookInitPackageResources;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
+import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_InitPackageResources;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
@@ -25,8 +27,10 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
             // 反制Xposed检测
             hookXposedUtil(loadPackageParam);
             // 去除广告
-            if (PreferenceUtils.disableFeedAdvert()) {
-                hookFeedAdvert(loadPackageParam);
+            boolean disableFeedAdvert = PreferenceUtils.disableFeedAdvert(),
+                    disableMarketCard = PreferenceUtils.disableMarketCard();
+            if (disableFeedAdvert || disableMarketCard) {
+                hookFeedAdvert(loadPackageParam, disableFeedAdvert, disableMarketCard);
             }
             if (PreferenceUtils.disableAnswerPageAdvert()) {
                 hookAnswerPageAdvert(loadPackageParam);
@@ -53,30 +57,45 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
      * @param loadPackageParam lpparam
      */
     private void hookXposedUtil(XC_LoadPackage.LoadPackageParam loadPackageParam) {
-        findAndHookMethod(ZhihuConstant.CLASS_XPOSED_UTILS, loadPackageParam.classLoader, "a", new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                param.setResult(false);
-            }
-        });
+        try {
+            findAndHookMethod(ZhihuConstant.CLASS_XPOSED_UTILS, loadPackageParam.classLoader, "a", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    param.setResult(false);
+                }
+            });
+        } catch (XposedHelpers.ClassNotFoundError | NoSuchMethodError e) {
+            XposedBridge.log("ZhihuXposed:" + e.toString());
+        }
     }
 
     /**
      * 去除首页Feed广告
      * @param loadPackageParam lpparam
      */
-    private void hookFeedAdvert(XC_LoadPackage.LoadPackageParam loadPackageParam) {
+    private void hookFeedAdvert(XC_LoadPackage.LoadPackageParam loadPackageParam, final boolean disableFeedAdvert, final boolean disableMarketCard) {
         Class<?> JsonParser = findClass(ZhihuConstant.CLASS_JSON_PARSER, loadPackageParam.classLoader);
         Class<?> DeserializationContext = findClass(ZhihuConstant.CLASS_JSON_DESERIALIZATION_CONTEXT, loadPackageParam.classLoader);
-        findAndHookMethod(ZhihuConstant.CLASS_JSON_DESERIALIZER, loadPackageParam.classLoader, "a", JsonParser, DeserializationContext, new XC_MethodHook() {
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                Object result = param.getResult();
-                if (result.getClass().getName().equals(ZhihuConstant.CLASS_MODEL_FEED_ADVERT)) {
-                    param.setResult(null);
+        try {
+            findAndHookMethod(ZhihuConstant.CLASS_JSON_DESERIALIZER, loadPackageParam.classLoader, "a", JsonParser, DeserializationContext, new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    Object result = param.getResult();
+                    String resultClazz = result.getClass().getName();
+                    if (resultClazz.equals(ZhihuConstant.CLASS_MODEL_FEED_ADVERT)) {
+                        if (disableFeedAdvert) {
+                            param.setResult(null);
+                        }
+                    } else if (resultClazz.equals(ZhihuConstant.CLASS_MODEL_MARKET_CARD)) {
+                        if (disableMarketCard) {
+                            param.setResult(null);
+                        }
+                    }
                 }
-            }
-        });
+            });
+        } catch (XposedHelpers.ClassNotFoundError | NoSuchMethodError e) {
+            XposedBridge.log("ZhihuXposed:" + e.toString());
+        }
     }
 
     /**
@@ -84,17 +103,21 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
      * @param loadPackageParam lpparam
      */
     private void hookAnswerPageAdvert(XC_LoadPackage.LoadPackageParam loadPackageParam) {
-        findAndHookMethod(ZhihuConstant.CLASS_APP_VIEW2, loadPackageParam.classLoader, "shouldInterceptRequest", String.class, new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                // 页面加载完成了，inject
-                String url = (String) param.args[0];
-                if (url.matches("^https?://www.zhihu.com/api/v\\d/community-ad/answers/\\d+/bottom-recommend-ad")) {
-                    // 直接替换返回的内容，够狠
-                    param.setResult(new WebResourceResponse("application/json", "UTF-8", new ByteArrayInputStream("{}".getBytes())));
+        try {
+            findAndHookMethod(ZhihuConstant.CLASS_APP_VIEW2, loadPackageParam.classLoader, "shouldInterceptRequest", String.class, new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    // 页面加载完成了，inject
+                    String url = (String) param.args[0];
+                    if (url.matches("^https?://www.zhihu.com/api/v\\d/community-ad/answers/\\d+/bottom-recommend-ad")) {
+                        // 直接替换返回的内容，够狠
+                        param.setResult(new WebResourceResponse("application/json", "UTF-8", new ByteArrayInputStream("{}".getBytes())));
+                    }
                 }
-            }
-        });
+            });
+        } catch (XposedHelpers.ClassNotFoundError | NoSuchMethodError e) {
+            XposedBridge.log("ZhihuXposed:" + e.toString());
+        }
     }
 
     /**
@@ -104,20 +127,24 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
      * @param removeMarket 是否移除大学
      */
     private void hookMainActivityTab(XC_LoadPackage.LoadPackageParam loadPackageParam, final boolean removeDbFeed, final boolean removeMarket) {
-        findAndHookMethod(ZhihuConstant.CLASS_MAIN_ACTIVITY, loadPackageParam.classLoader, "ac", new XC_MethodHook() {
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                List<?> fragmentList = (List<?>) getObjectField(param.thisObject, "v");
-                if (removeDbFeed && removeMarket) {
-                    fragmentList.remove(1);
-                    fragmentList.remove(1);
-                } else if (removeDbFeed) {
-                    fragmentList.remove(1);
-                } else if (removeMarket) {
-                    fragmentList.remove(2);
+        try {
+            findAndHookMethod(ZhihuConstant.CLASS_MAIN_ACTIVITY, loadPackageParam.classLoader, "ac", new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    List<?> fragmentList = (List<?>) getObjectField(param.thisObject, "v");
+                    if (removeDbFeed && removeMarket) {
+                        fragmentList.remove(1);
+                        fragmentList.remove(1);
+                    } else if (removeDbFeed) {
+                        fragmentList.remove(1);
+                    } else if (removeMarket) {
+                        fragmentList.remove(2);
+                    }
                 }
-            }
-        });
+            });
+        } catch (XposedHelpers.ClassNotFoundError | NoSuchMethodError e) {
+            XposedBridge.log("ZhihuXposed:" + e.toString());
+        }
     }
 
     private void replaceCopyright(XC_InitPackageResources.InitPackageResourcesParam resourcesParam) {
