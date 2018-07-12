@@ -22,6 +22,8 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam loadPackageParam) throws Throwable {
         if (ZhihuConstant.PACKAGE_NAME.equals(loadPackageParam.packageName)) {
+            // 反制Xposed检测
+            hookXposedUtil(loadPackageParam);
             // 去除广告
             if (PreferenceUtils.disableFeedAdvert()) {
                 hookFeedAdvert(loadPackageParam);
@@ -44,6 +46,19 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
             // 修改copyright信息
             replaceCopyright(resourcesParam);
         }
+    }
+
+    /**
+     * 屏蔽Xposed检测
+     * @param loadPackageParam lpparam
+     */
+    private void hookXposedUtil(XC_LoadPackage.LoadPackageParam loadPackageParam) {
+        findAndHookMethod(ZhihuConstant.CLASS_XPOSED_UTILS, loadPackageParam.classLoader, "a", new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                param.setResult(false);
+            }
+        });
     }
 
     /**
