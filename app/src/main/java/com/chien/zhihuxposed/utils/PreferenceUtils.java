@@ -1,5 +1,7 @@
 package com.chien.zhihuxposed.utils;
 
+import com.chien.zhihuxposed.BuildConfig;
+
 import de.robv.android.xposed.XSharedPreferences;
 
 public class PreferenceUtils {
@@ -7,8 +9,7 @@ public class PreferenceUtils {
 
     private static XSharedPreferences getInstance() {
         if (instance == null) {
-            instance = new XSharedPreferences(PreferenceUtils.class.getPackage().getName());
-            instance.makeWorldReadable();
+            instance = new XSharedPreferences(BuildConfig.APPLICATION_ID);
         } else {
             instance.reload();
         }
