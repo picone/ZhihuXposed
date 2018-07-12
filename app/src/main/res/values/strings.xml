@@ -3,4 +3,6 @@
 
     <string name="disable_feed_advert">关闭Feed广告</string>
     <string name="disable_answer_page_advert">关闭答案页面广告</string>
+    <string name="disable_idea_tab">屏蔽"想法"选项卡</string>
+    <string name="disable_college_tab">屏蔽"大学"选项卡</string>
 </resources>

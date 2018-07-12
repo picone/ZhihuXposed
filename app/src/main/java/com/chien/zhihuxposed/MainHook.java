@@ -5,6 +5,7 @@ import android.webkit.WebResourceResponse;
 import com.chien.zhihuxposed.utils.PreferenceUtils;
 
 import java.io.ByteArrayInputStream;
+import java.util.List;
 
 import de.robv.android.xposed.IXposedHookInitPackageResources;
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -14,6 +15,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 import static de.robv.android.xposed.XposedHelpers.findClass;
+import static de.robv.android.xposed.XposedHelpers.getObjectField;
 
 public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageResources {
 
@@ -27,6 +29,12 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
             if (PreferenceUtils.disableAnswerPageAdvert()) {
                 hookAnswerPageAdvert(loadPackageParam);
             }
+            // 屏蔽"想法"或"大学"
+            boolean disableIdea = PreferenceUtils.disableIdeaTab(),
+                    disableCollege = PreferenceUtils.disableCollegeTab();
+            if (disableIdea || disableCollege) {
+                hookMainActivityTab(loadPackageParam, disableIdea, disableCollege);
+            }
         }
     }
 
@@ -39,11 +47,10 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
     }
 
     /**
-     * 去除广告
+     * 去除首页Feed广告
      * @param loadPackageParam lpparam
      */
     private void hookFeedAdvert(XC_LoadPackage.LoadPackageParam loadPackageParam) {
-        // 去除首页Feed推荐广告
         Class<?> JsonParser = findClass(ZhihuConstant.CLASS_JSON_PARSER, loadPackageParam.classLoader);
         Class<?> DeserializationContext = findClass(ZhihuConstant.CLASS_JSON_DESERIALIZATION_CONTEXT, loadPackageParam.classLoader);
         findAndHookMethod(ZhihuConstant.CLASS_JSON_DESERIALIZER, loadPackageParam.classLoader, "a", JsonParser, DeserializationContext, new XC_MethodHook() {
@@ -57,8 +64,11 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
         });
     }
 
+    /**
+     * 去除答案页面WebView内广告
+     * @param loadPackageParam lpparam
+     */
     private void hookAnswerPageAdvert(XC_LoadPackage.LoadPackageParam loadPackageParam) {
-        // 去除答案页面webview里的广告
         findAndHookMethod(ZhihuConstant.CLASS_APP_VIEW2, loadPackageParam.classLoader, "shouldInterceptRequest", String.class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
@@ -67,6 +77,29 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
                 if (url.matches("^https?://www.zhihu.com/api/v\\d/community-ad/answers/\\d+/bottom-recommend-ad")) {
                     // 直接替换返回的内容，够狠
                     param.setResult(new WebResourceResponse("application/json", "UTF-8", new ByteArrayInputStream("{}".getBytes())));
+                }
+            }
+        });
+    }
+
+    /**
+     * 移除底部想法和大学按钮
+     * @param loadPackageParam lpparam
+     * @param removeDbFeed 是否移除想法
+     * @param removeMarket 是否移除大学
+     */
+    private void hookMainActivityTab(XC_LoadPackage.LoadPackageParam loadPackageParam, final boolean removeDbFeed, final boolean removeMarket) {
+        findAndHookMethod(ZhihuConstant.CLASS_MAIN_ACTIVITY, loadPackageParam.classLoader, "ac", new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                List<?> fragmentList = (List<?>) getObjectField(param.thisObject, "v");
+                if (removeDbFeed && removeMarket) {
+                    fragmentList.remove(1);
+                    fragmentList.remove(1);
+                } else if (removeDbFeed) {
+                    fragmentList.remove(1);
+                } else if (removeMarket) {
+                    fragmentList.remove(2);
                 }
             }
         });
