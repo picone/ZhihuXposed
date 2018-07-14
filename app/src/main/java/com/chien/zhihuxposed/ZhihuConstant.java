@@ -12,4 +12,6 @@ public class ZhihuConstant {
     public final static String CLASS_APP_VIEW2 = "com.zhihu.android.app.appview.AppView2";
     public final static String CLASS_MAIN_ACTIVITY = "com.zhihu.android.app.ui.activity.MainActivity";
     public final static String CLASS_XPOSED_UTILS = "com.zhihu.android.app.util.ir";
+    public final static String CLASS_ANSWER_LIST_FRAGMENT = "com.zhihu.android.app.ui.fragment.answer.AnswerListFragment";
+    public final static String CLASS_ANSWER_LIST_AD = "com.zhihu.android.api.model.AnswerList.AdInfo";
 }

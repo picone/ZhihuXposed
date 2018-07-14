@@ -41,6 +41,10 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
             if (disableIdea || disableCollege) {
                 hookMainActivityTab(loadPackageParam, disableIdea, disableCollege);
             }
+            // 答案页面广告
+            if (PreferenceUtils.disableAnswerListAd()) {
+                hookAnswerList(loadPackageParam);
+            }
         }
     }
 
@@ -140,6 +144,24 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
                     } else if (removeMarket) {
                         fragmentList.remove(2);
                     }
+                }
+            });
+        } catch (XposedHelpers.ClassNotFoundError | NoSuchMethodError e) {
+            XposedBridge.log("ZhihuXposed:" + e.toString());
+        }
+    }
+
+    /**
+     * 去除答案页面广告
+     * @param loadPackageParam lpparam
+     */
+    private void hookAnswerList(XC_LoadPackage.LoadPackageParam loadPackageParam) {
+        Class<?> AdInfoClazz = findClass(ZhihuConstant.CLASS_ANSWER_LIST_AD, loadPackageParam.classLoader);
+        try {
+            findAndHookMethod(ZhihuConstant.CLASS_ANSWER_LIST_FRAGMENT, loadPackageParam.classLoader, "a", List.class, AdInfoClazz, new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    param.setResult(null);
                 }
             });
         } catch (XposedHelpers.ClassNotFoundError | NoSuchMethodError e) {

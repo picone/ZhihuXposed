@@ -35,4 +35,8 @@ public class PreferenceUtils {
     public static boolean disableCollegeTab() {
         return getInstance().getBoolean("DISABLE_COLLEGE_TAB", true);
     }
+
+    public static boolean disableAnswerListAd() {
+        return getInstance().getBoolean("DISABLE_ANSWER_LIST_AD", true);
+    }
 }
