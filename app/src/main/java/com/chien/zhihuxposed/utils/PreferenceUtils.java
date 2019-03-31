@@ -27,16 +27,4 @@ public class PreferenceUtils {
     public static boolean disableAnswerPageAdvert() {
         return getInstance().getBoolean("DISABLE_ANSWER_PAGE_ADVERT", true);
     }
-
-    public static boolean disableIdeaTab() {
-        return getInstance().getBoolean("DISABLE_IDEA_TAB", false);
-    }
-
-    public static boolean disableCollegeTab() {
-        return getInstance().getBoolean("DISABLE_COLLEGE_TAB", true);
-    }
-
-    public static boolean disableAnswerListAd() {
-        return getInstance().getBoolean("DISABLE_ANSWER_LIST_AD", true);
-    }
 }
