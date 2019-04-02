@@ -32,7 +32,7 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
                 hookFeedAdvert(loadPackageParam, disableFeedAdvert, disableMarketCard);
             }
             if (PreferenceUtils.disableAnswerPageAdvert()) {
-                //hookAnswerPageAdvert(loadPackageParam);
+                hookAnswerPageAdvert(loadPackageParam);
             }
         }
     }
@@ -75,14 +75,15 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     Object result = param.getResult();
                     String resultClazz = result.getClass().getName();
-                    XposedBridge.log("ZhihuXposed:deserializer result clazz is_" + resultClazz);
                     if (resultClazz.equals(ZhihuConstant.CLASS_MODEL_FEED_ADVERT)) {
                         if (disableFeedAdvert) {
                             param.setResult(null);
+                            XposedBridge.log("ZhihuXposed:block a feed card");
                         }
                     } else if (resultClazz.equals(ZhihuConstant.CLASS_MODEL_MARKET_CARD)) {
                         if (disableMarketCard) {
                             param.setResult(null);
+                            XposedBridge.log("ZhihuXposed:block a market card");
                         }
                     }
                 }
@@ -103,8 +104,7 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     // 页面加载完成了，inject
                     String url = (String) param.args[0];
-                    XposedBridge.log("ZhihuXposed:request api:" + url);
-                    if (url.matches("^https?://www.zhihu.com/api/v\\d/creator/people/\\w+/promotion.+")) {
+                    if (url.matches("^https?://api.zhihu.com/appview/api/v\\d/answers/\\d+/recommendations")) {
                         // 直接替换返回的内容，够狠
                         param.setResult(new WebResourceResponse("application/json", "UTF-8", new ByteArrayInputStream("{}".getBytes())));
                     }
