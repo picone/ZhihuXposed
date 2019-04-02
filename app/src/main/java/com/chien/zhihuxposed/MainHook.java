@@ -5,7 +5,6 @@ import android.webkit.WebResourceResponse;
 import com.chien.zhihuxposed.utils.PreferenceUtils;
 
 import java.io.ByteArrayInputStream;
-import java.util.List;
 
 import de.robv.android.xposed.IXposedHookInitPackageResources;
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -34,6 +33,7 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
             if (PreferenceUtils.disableAnswerPageAdvert()) {
                 hookAnswerPageAdvert(loadPackageParam);
             }
+            XposedBridge.log("ZhihuXposed:inject into zhihu!");
         }
     }
 

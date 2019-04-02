@@ -1,0 +1,31 @@
+language: android
+jdk: oraclejdk8
+sudo: false
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+cache:
+  directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+    - $HOME/.android/build-cache
+android:
+  components:
+  - build-tools-27.0.3
+  - build-tools-28.0.3
+  - android-28
+  licenses:
+  - android-sdk-license-.+
+script: "./gradlew assembleRelease"
+before_install:
+- openssl aes-256-cbc -K $encrypted_9a4574188ef5_key -iv $encrypted_9a4574188ef5_iv
+  -in android.keystore.enc -out android.keystore -d
+deploy:
+  provider: releases
+  api_key:
+    secure: Ss8QkZe0yhoqfEfuJdLAlapIgd4vJpMoyrJITL/2E0RWfbVcIjjBycnvF1lH8xUIuhOpHxMVJtYWitzay7ZmYqps47jF+jqdg6v8z52utXTHoxHk008kci7+7Y5n1LyugMr8PmNSIrTUZ9RJ3tBBq/IUwIYAMHu+VVe3Cfzg9HlhY16t/qm1w5kmZpMSgIs76eh0ROSDDarjfShMA7qZ0mY4YaPyUCndR3feSYgPpdZflJwloGmJMrC3d9za4QqpzcOpKX+4aZ6LIbyW0FZ2mdabyFcInlbCIkd/3AzjJKeTRkRoKZD2YrM1X4ahauLq2bNTOdZFP7hGCtRGXQt7joHMMyjjFFIeDXY68Dnjk7/0SUBhSzRaHVZ+r7KJwpmQ3GY7J3aDgDFN2wyY/88rPoikKCxha1FrOLMYjaPx4oq5l1djcjKakhcHysHBE+nMv+9GlPsqWxDPg0OEmIbIBEOwJQqrMWwNkD7rrRC4siuqQ3KHZ9NgQyoLC7Ak0InJatR2mLsOao4+zdLM6Y5R7IjJMQVjgJIxtrDvWfnwbFJUA02SIZxt4QE7yITw56I++Zd2n3HuqnfBdC1yVZH3oJX0B0tT6sJ1e/c9Nt2hxcDJVzA29q523stTChxc2nZ1/NGlNa49dzWK0/8Pv6jZv4SW7gZFjGSl7uGHGEgfM8M=
+  file: app/build/outputs/apk/release/app-release.apk
+  skip_cleanup: true
+  on:
+    tags: true
+    repo: picone/ZhihuXposed

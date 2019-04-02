@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/picone/ZhihuXposed.svg?branch=master)](https://travis-ci.org/picone/ZhihuXposed)
+
 # ZhihuXposed
 
 知乎Xposed插件 - 知乎助手
