@@ -29,6 +29,8 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
             if (PreferenceUtils.disableAnswerPageAdvert()) {
                 hookAnswerPageAdvert(loadPackageParam);
             }
+            //开屏广告
+            hookLaunchActivity(loadPackageParam);
             XposedBridge.log("ZhihuXposed:inject into zhihu!");
         }
     }
@@ -116,48 +118,6 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
      */
     private void hookAnswerPageAdvert(final XC_LoadPackage.LoadPackageParam loadPackageParam) {
         try {
-            /*
-            XposedBridge.hookAllMethods(findClass("com.zhihu.android.answer.module.content.appview.AnswerAppView", loadPackageParam.classLoader), "setContentPaddingTop", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-
-                }
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    Field[] field = param.thisObject.getClass().getDeclaredFields();
-                    boolean isCache = false;
-                    for (Field f : field) {
-                        f.setAccessible(true);
-                        if(f.getName().equals("mHitCache")){
-
-                            isCache = f.getBoolean(param.thisObject);
-                        }
-                        if(f.getType().getName().equals(java.lang.String.class.getName())){
-                            XposedBridge.log("Field Name = " + f.getName()+" == " + f.get(param.thisObject));
-                        }else if(f.getType().getName().equals(int.class.getName())){
-                            XposedBridge.log("Field Name = " + f.getName()+" == " + f.getInt(param.thisObject));
-                        }else{
-                            XposedBridge.log("Field Name = " + f.getName()+" == " + f.toGenericString());
-                        }
-
-                    }
-                    XposedBridge.log("ZhihuXposed: AnswerAppView setContentPaddingTop");
-                    if(!isCache){
-                        XposedHelpers.callMethod(param.thisObject, "evaluateJavascript", "document.getElementsByClassName(\"AnswerFooter\")[0].innerText += \"・Xposed已生效\";", new ValueCallback<String>() {
-                            @Override
-                            public void onReceiveValue(String s) {
-                                XposedBridge.log(s);
-                            }
-                        });
-                        XposedHelpers.callMethod(param.thisObject, "evaluateJavascript", "document.getElementsByClassName(\"AnswerRecomReading-KMAnswerAdsCard\")[0].remove();", new ValueCallback<String>() {
-                            @Override
-                            public void onReceiveValue(String s) {
-                                XposedBridge.log(s);
-                            }
-                        });
-                    }
-                }
-            });*/
             XposedBridge.hookAllMethods(findClass(ZhihuConstant.CLASS_ANSWER_APP_VIEW, loadPackageParam.classLoader), "processHtmlContent", new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
@@ -181,12 +141,33 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
                     param.args[0] = result;
                 }
             });
-
         } catch (XposedHelpers.ClassNotFoundError | NoSuchMethodError e) {
             XposedBridge.log("ZhihuXposed:" + e.toString());
         }
     }
 
+    /**
+     * 去除开屏广告
+     * @param loadPackageParam lpparam
+     */
+    private void hookLaunchActivity(final XC_LoadPackage.LoadPackageParam loadPackageParam) {
+        try {
+            findAndHookMethod(ZhihuConstant.CLASS_LAUNCH_FRAGMENT, loadPackageParam.classLoader, "q", new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    super.afterHookedMethod(param);
+                    param.setResult(0);
+                }
+            });
+        } catch (XposedHelpers.ClassNotFoundError | NoSuchFieldError e) {
+            XposedBridge.log("ZhihuXposed:" + e.toString());
+        }
+    }
+
+    /**
+     * 增加copyright
+     * @param resourcesParam rparam
+     */
     private void replaceCopyright(XC_InitPackageResources.InitPackageResourcesParam resourcesParam) {
         int copyrightId = resourcesParam.res.getIdentifier("label_app_copyright", "string", ZhihuConstant.PACKAGE_NAME);
         String copyright = resourcesParam.res.getString(copyrightId);

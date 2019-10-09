@@ -15,4 +15,5 @@ public class ZhihuConstant {
     public final static String CLASS_XPOSED_PREFIX = "de.robv.android.xposed";
     public final static String CLASS_ANSWER_LIST_FRAGMENT = "com.zhihu.android.app.ui.fragment.answer.AnswerListFragment";
     public final static String CLASS_ANSWER_LIST_AD = "com.zhihu.android.api.model.AnswerList.AdInfo";
+    public final static String CLASS_LAUNCH_FRAGMENT = "com.zhihu.android.app.ui.fragment.ad.b";
 }
