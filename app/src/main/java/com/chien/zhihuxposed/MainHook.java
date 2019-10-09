@@ -1,20 +1,7 @@
 package com.chien.zhihuxposed;
 
-import android.content.Context;
-import android.content.IntentFilter;
-import android.util.Log;
-import android.webkit.ValueCallback;
-import android.webkit.WebResourceResponse;
-
 import com.chien.zhihuxposed.utils.PreferenceUtils;
 
-import java.io.ByteArrayInputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Enumeration;
-import java.util.Map;
-
-import dalvik.system.DexFile;
 import de.robv.android.xposed.IXposedHookInitPackageResources;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
@@ -28,7 +15,6 @@ import static de.robv.android.xposed.XposedHelpers.findClass;
 
 public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageResources {
 
-    private final String TAG = "ZhihuXposed";
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam loadPackageParam) throws Throwable {
         if (ZhihuConstant.PACKAGE_NAME.equals(loadPackageParam.packageName)) {
@@ -56,15 +42,21 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
     }
 
     /**
-     * 假装已经放了/sdcard/zhihu/.allowXposed
+     * 禁止通过ClassLoader获取de.robv.android.xposed开头的class，让它认为没有安装xposed
      * @param loadPackageParam lpparam
      */
     private void hookXposedUtil(XC_LoadPackage.LoadPackageParam loadPackageParam) {
         try {
-            findAndHookMethod(ZhihuConstant.CLASS_XPOSED_UTILS, loadPackageParam.classLoader, "a", new XC_MethodHook() {
+            findAndHookMethod(ClassLoader.class, "loadClass", String.class, new XC_MethodHook() {
                 @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                param.setResult(false);
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    super.afterHookedMethod(param);
+                    if (param.args.length > 0 && param.args[0] != null && param.args[0] instanceof String) {
+                        String clazzName = (String)param.args[0];
+                        if (clazzName.startsWith(ZhihuConstant.CLASS_XPOSED_PREFIX)) {
+                            param.setResult(null);
+                        }
+                    }
                 }
             });
         } catch (XposedHelpers.ClassNotFoundError | NoSuchMethodError e) {
@@ -89,12 +81,26 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
                     if (resultClazz.equals(ZhihuConstant.CLASS_MODEL_FEED_ADVERT)) {
                         if (disableFeedAdvert) {
                             param.setResult(null);
-                            XposedBridge.log("ZhihuXposed:block a feed card");
                         }
                     } else if (resultClazz.equals(ZhihuConstant.CLASS_MODEL_MARKET_CARD)) {
                         if (disableMarketCard) {
                             param.setResult(null);
-                            XposedBridge.log("ZhihuXposed:block a market card");
+                        }
+                    }
+                }
+            });
+            findAndHookMethod(ZhihuConstant.CLASS_FEED_ZH_OBJECT_DESERIALIZER, loadPackageParam.classLoader, "registerZHObject", Class.class, String.class, new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    super.beforeHookedMethod(param);
+                    String fieldName = (String)param.args[1];
+                    if (fieldName.equals("feed_advert")) {
+                        if (disableFeedAdvert) {
+                            param.args[1] = "";
+                        }
+                    } else if (fieldName.equals("market_card")) {
+                        if (disableMarketCard) {
+                            param.args[1] = "";
                         }
                     }
                 }
@@ -109,7 +115,6 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
      * @param loadPackageParam lpparam
      */
     private void hookAnswerPageAdvert(final XC_LoadPackage.LoadPackageParam loadPackageParam) {
-        XposedBridge.log("ZhihuXposed: hookAnswerPageAdvert");
         try {
             /*
             XposedBridge.hookAllMethods(findClass("com.zhihu.android.answer.module.content.appview.AnswerAppView", loadPackageParam.classLoader), "setContentPaddingTop", new XC_MethodHook() {
@@ -153,10 +158,12 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
                     }
                 }
             });*/
-            XposedBridge.hookAllMethods(findClass("com.zhihu.android.answer.module.content.appview.AnswerAppView", loadPackageParam.classLoader), "processHtmlContent", new XC_MethodHook() {
+            XposedBridge.hookAllMethods(findClass(ZhihuConstant.CLASS_ANSWER_APP_VIEW, loadPackageParam.classLoader), "processHtmlContent", new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    XposedBridge.log("ZhihuXposed: AnswerAppView processHtmlContent");
+                    if (!(param.args[0] instanceof String)) {
+                        return;
+                    }
                     String src = (String)param.args[0];
 
                     int index = src.indexOf("</body></html>");
@@ -172,14 +179,6 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
                             "}" +
                             "</script></body></html>";
                     param.args[0] = result;
-
-                    for(int i = 0; i < result.length(); i += 3000){
-                        if(i + 3000 > result.length()){
-                            XposedBridge.log("ZhihuXposed: " + result.substring(i));
-                        }else{
-                            XposedBridge.log("ZhihuXposed: " + result.substring(i, i+3000));
-                        }
-                    }
                 }
             });
 
