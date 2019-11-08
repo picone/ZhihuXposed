@@ -56,6 +56,13 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
                     if (param.args.length > 0 && param.args[0] != null && param.args[0] instanceof String) {
                         String clazzName = (String)param.args[0];
                         if (clazzName.startsWith(ZhihuConstant.CLASS_XPOSED_PREFIX)) {
+                            //如果调用栈包含EdXposed则允许
+                            StackTraceElement[] stackTraceElements = (new Throwable()).getStackTrace();
+                            for (StackTraceElement stackTraceElement:stackTraceElements) {
+                                if(stackTraceElement.getClassName().contains("elderdrivers")){
+                                    return;
+                                }
+                            }
                             param.setResult(null);
                         }
                     }
