@@ -7,4 +7,5 @@
     <string name="disable_idea_tab">屏蔽"想法"选项卡</string>
     <string name="disable_college_tab">屏蔽"大学"选项卡</string>
     <string name="disable_answer_list_ad">关闭答案列表广告</string>
+    <string name="open_url_in_external_browser">用外置浏览器打开链接</string>
 </resources>

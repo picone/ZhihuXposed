@@ -27,4 +27,8 @@ public class PreferenceUtils {
     public static boolean disableAnswerPageAdvert() {
         return getInstance().getBoolean("DISABLE_ANSWER_PAGE_ADVERT", true);
     }
+
+    public static boolean openUrlInExternalBrowser() {
+        return getInstance().getBoolean("OPEN_URL_IN_EXTERNAL_BROWSER", false);
+    }
 }
