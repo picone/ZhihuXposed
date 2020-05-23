@@ -1,15 +1,23 @@
 package com.chien.zhihuxposed;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
+
 import com.chien.zhihuxposed.utils.PreferenceUtils;
+
+import java.lang.reflect.Method;
 
 import de.robv.android.xposed.IXposedHookInitPackageResources;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XC_MethodReplacement;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_InitPackageResources;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
+import static com.chien.zhihuxposed.ZhihuConstant.CLASS_WEBVIEW_FRAGMENT;
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 import static de.robv.android.xposed.XposedHelpers.findClass;
 
@@ -31,6 +39,11 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
             }
             //开屏广告
             hookLaunchActivity(loadPackageParam);
+
+            if (PreferenceUtils.openUrlInExternalBrowser()) {
+                hookExternalBrowser(loadPackageParam);
+            }
+
             XposedBridge.log("ZhihuXposed:inject into zhihu!");
         }
     }
@@ -56,6 +69,13 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
                     if (param.args.length > 0 && param.args[0] != null && param.args[0] instanceof String) {
                         String clazzName = (String)param.args[0];
                         if (clazzName.startsWith(ZhihuConstant.CLASS_XPOSED_PREFIX)) {
+                            //如果调用栈包含EdXposed则允许
+                            StackTraceElement[] stackTraceElements = (new Throwable()).getStackTrace();
+                            for (StackTraceElement stackTraceElement:stackTraceElements) {
+                                if(stackTraceElement.getClassName().contains("elderdrivers")){
+                                    return;
+                                }
+                            }
                             param.setResult(null);
                         }
                     }
@@ -173,5 +193,41 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookInitPackageR
         String copyright = resourcesParam.res.getString(copyrightId);
         copyright += "\n@知乎助手 by ChienHo";
         resourcesParam.res.setReplacement(copyrightId, copyright);
+    }
+
+    private void hookExternalBrowser(final XC_LoadPackage.LoadPackageParam loadPackageParam){
+        final Class<?> clazz = XposedHelpers.findClass(ZhihuConstant.CLASS_WEBVIEW_FRAGMENT, loadPackageParam.classLoader);
+
+        XposedBridge.hookAllMethods(clazz, "a", new XC_MethodReplacement() {
+            @Override
+            protected Object replaceHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
+                //非目标函数
+                if(param.args[0].getClass() != String.class){
+                    return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                }
+
+                String url = (String)param.args[0];
+                if(url.startsWith("https://link.zhihu.com/")){
+                    XposedBridge.log("ZhihuXposed: open URL in browser: " + url);
+                    Object that = param.thisObject;
+                    Method getActivityMethod = clazz.getMethod("getActivity");
+                    Activity activity = (Activity)getActivityMethod.invoke(that);
+
+                    //调用外部浏览器
+                    Uri uri = Uri.parse(url);
+                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                    activity.startActivity(intent);
+
+                    //关掉空白的webview页面 TODO
+                    /*Method popBackMethod = clazz.getDeclaredMethod("d", View.class);
+                    popBackMethod.setAccessible(true);
+                    popBackMethod.invoke(that, (View)null);*/
+                    return null;
+                }else{
+                    XposedBridge.log("ZhihuXposed: not open URL in browser: " + url);
+                    return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                }
+            }
+        });
     }
 }

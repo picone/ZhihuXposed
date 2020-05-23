@@ -11,4 +11,8 @@
         android:defaultValue="true"
         android:key="DISABLE_ANSWER_PAGE_ADVERT"
         android:title="@string/disable_answer_page_advert" />
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="OPEN_URL_IN_EXTERNAL_BROWSER"
+        android:title="@string/open_url_in_external_browser" />
 </PreferenceScreen>
